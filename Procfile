@@ -1,1 +1,1 @@
-userbot: python -m cj-userbot
+userbot: python -m xtrabot
