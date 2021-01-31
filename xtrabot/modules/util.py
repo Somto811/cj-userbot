@@ -26,7 +26,7 @@ class Util(loader.Module):
         self.addxconfig("PING", "Pong!\n", "Defines Ping Message")
 
     async def ping(self, event):
-        start = datetime.now()
+                start = datetime.now()
         await utils.answer(event, self.xconfig["PING"][0])
         end = datetime.now()
         if event.reply_to_msg_id:
@@ -37,7 +37,7 @@ class Util(loader.Module):
         HM = time.strftime("%H:%M:%S")
         TZ = time.strftime("%z")
         ms = (end - start).microseconds / 1000
-        textmsg = "`ID = {}\nCHAT ID = {}\nDATE = {}\nTIME = {} GMT{}\nPING = {}ms`".format(info.id, info.chat_id, DMY, HM, TZ, ms)
+        textmsg = "`ID = {}\nUser ID = {}\nCHAT ID = {}\nDATE = {}\nTIME = {} GMT{}\nPING = {}ms`".format(info.id, info.User ID, info.chat_id, DMY, HM, TZ, ms)
         await utils.answer(event, textmsg)
 
     async def help(self, event):
