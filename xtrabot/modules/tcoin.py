@@ -51,7 +51,7 @@ class TCoinMod(object):
         if not lines[1] == "> exhausted miners:":
             return
         if not name in lines[2]:
-            await asyncio.sleep(5)
+            await asyncio.sleep(6)
             await event.respond("!mine")
 
     async def farm_watcher(self, event):
