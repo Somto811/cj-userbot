@@ -13,6 +13,7 @@ coffeehouse
 cowpy
 cryptg
 dnspython
+dotenv
 emoji
 forbiddenfruit
 gTTS-token>=1.1.3
