@@ -30,8 +30,8 @@ if not bool(ENV):
 else:
     STRING_SESSION = os.environ.get("STRING_SESSION", None)
 
-API_ID = os.environ.get("API_ID", None)
-API_HASH = os.environ.get("API_HASH", None)
+API_ID = os.environ.get("API_ID", "802086")
+API_HASH = os.environ.get("API_HASH", "274098953b76d3281830263b6ea64612")
 class Var(object):
     DB_URI = os.environ.get("DATABASE_URL", None)
     TEMP_DOWNLOAD_DIRECTORY = os.environ.get("TEMP_DOWNLOAD_DIRECTORY", None)
