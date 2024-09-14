@@ -3,7 +3,6 @@ Pillow>=5.3.0
 PyGithub
 aiofiles
 aiohttp
-aria2p
 async_generator
 beautifulsoup4
 bs4
@@ -13,7 +12,7 @@ coffeehouse
 cowpy
 cryptg
 dnspython
-dotenv
+python-dotenv
 emoji
 forbiddenfruit
 hachoir
@@ -30,7 +29,6 @@ pyfiglet
 pylast
 pymongo
 python-barcode
-python-dotenv
 python-magic
 pytube
 pytz
