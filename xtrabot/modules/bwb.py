@@ -24,17 +24,18 @@ async def send_init_periodically():
 @loader.command(outgoing=True, pattern='!!+init')
 async def init(event):
     try:
-        await event.respond('000000init ' + bwb.init())
-        await event.delete()  # Delete the init message after sending
-    except:
-        pass
+        message = await event.respond('000000init ' + bwb.init())
+        await asyncio.sleep(30)  # Wait for 30 seconds
+        await message.delete()  # Delete the init message after waiting
+    except Exception as e:
+        print(f"Error in init command: {e}")  # Log any errors
 
 @loader.command(outgoing=True, pattern=r"!!+add wrap (\S) ?(\d+)?")
 async def addwrap(event):
     try:
         nick = event.pattern_match.group(1)
         reply = await event.get_reply_message()
-        if reply == None:
+        if reply is None:
             usrid = event.pattern_match.group(2)
         else:
             usrid = reply.from_id
@@ -42,8 +43,8 @@ async def addwrap(event):
             return
         wrap_users[nick] = int(usrid)
         await event.respond("Added {} with user_id of {} to wrap_users".format(nick, usrid))
-    except:
-        pass
+    except Exception as e:
+        print(f"Error in addwrap command: {e}")  # Log any errors
 
 @loader.command(outgoing=True, pattern=r'!!+(e(?:enc)?)?w(?:rap)? (\S+) ([\s\S]+)')
 async def wrap(event):
@@ -58,8 +59,8 @@ async def wrap(event):
             u = wrap_users.get(u, None)
 
         await event.respond(bwb.wrap(message, target=u, enc=enc), reply_to=event.reply_to_msg_id)
-    except:
-        pass
+    except Exception as e:
+        print(f"Error in wrap command: {e}")  # Log any errors
 
 @loader.command()
 async def hs(event):
@@ -97,8 +98,8 @@ async def hs(event):
                 await event.reply('Pong!')
             elif command == "echo":
                 await do_echo(event, data)
-    except:
-        pass
+    except Exception as e:
+        print(f"Error in hs command: {e}")  # Log any errors
 
 async def do_echo(event, data):
     user = await event.get_sender()
