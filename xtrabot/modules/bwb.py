@@ -14,7 +14,7 @@ wrap_users = {
     'v': 181585055,  # Viktor
 }
 
-GROUP_ID = -1001403190671  # Replace with your actual group ID
+GROUP_ID = -1001234567890  # Replace with your actual group ID
 
 async def send_init_periodically():
     while True:
@@ -24,9 +24,14 @@ async def send_init_periodically():
 @loader.command(outgoing=True, pattern='!!+init')
 async def init(event):
     try:
-        message = await event.respond('000000init ' + bwb.init())
-        await asyncio.sleep(30)  # Wait for 30 seconds
-        await message.delete()  # Delete the init message after waiting
+        # Send the initialization message
+        await event.respond('000000init ' + bwb.init())
+        
+        # Wait for 30 seconds
+        await asyncio.sleep(30) 
+        
+        # Delete the original command message (the one with !!+init)
+        await event.delete()  
     except Exception as e:
         print(f"Error in init command: {e}")  # Log any errors
 
