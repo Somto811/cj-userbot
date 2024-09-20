@@ -2,6 +2,7 @@ from xtrabot import loader
 from xtrabot import client
 from bwb import bwb
 import asyncio
+import time
 
 bwb = bwb.bwb(client.uid)
 wrap_users = {
@@ -14,6 +15,19 @@ wrap_users = {
     'v': 181585055,  # Viktor
 }
 
+GROUP_ID = -1001403190671  # Replace this with your group's ID
+
+async def send_init_periodically():
+    while True:
+        try:
+            await client.send_message(GROUP_ID, '000000init ' + bwb.init())
+        except Exception as e:
+            print(f"Error sending init: {e}")
+        await asyncio.sleep(12 * 60 * 60)  # Wait 12 hours
+
+@loader.tds
+async def on_start():
+    asyncio.create_task(send_init_periodically())
 
 @loader.command(outgoing=True, pattern='!!+init')
 async def init(event):
@@ -38,7 +52,6 @@ async def addwrap(event):
     except:
         pass
 
-
 @loader.command(outgoing=True, pattern=r'!!+(e(?:enc)?)?w(?:rap)? (\S+) ([\s\S]+)')
 async def wrap(event):
     try:
@@ -54,7 +67,6 @@ async def wrap(event):
         await event.respond(bwb.wrap(message, target=u, enc=enc), reply_to=event.reply_to_msg_id)
     except:
         pass
-
 
 @loader.command()
 async def hs(event):
@@ -96,5 +108,5 @@ async def hs(event):
         pass
 
 async def do_echo(event, data):
-        user = await event.get_sender()
-        await event.respond(f"[{user.first_name}](tg://user?id={user.id}): `{data}`")
+    user = await event.get_sender()
+    await event.respond(f"[{user.first_name}](tg://user?id={user.id}): `{data}`")
