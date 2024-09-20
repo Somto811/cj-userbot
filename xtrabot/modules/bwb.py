@@ -14,7 +14,7 @@ wrap_users = {
     'v': 181585055,  # Viktor
 }
 
-GROUP_ID = -1001234567890  # Replace with your actual group ID
+GROUP_ID = -1001403190671  # Replace with your actual group ID
 
 async def send_init_periodically():
     while True:
