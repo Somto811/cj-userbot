@@ -19,7 +19,7 @@ GROUP_ID = -1001403190671  # Replace with your actual group ID
 async def send_init_periodically():
     while True:
         await client.send_message(GROUP_ID, '000000init ' + bwb.init())
-        await asyncio.sleep(5 * 60 * 60)  # Wait for 5 hours
+        await asyncio.sleep(15 * 60 * 60)  # Wait for 15 hours (instead of 5 hours)
 
 @loader.command(outgoing=True, pattern='!!+init')
 async def init(event):
