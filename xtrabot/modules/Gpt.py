@@ -1,85 +1,58 @@
-import openai
 from telethon import events
-from time import time
-import asyncio
-import json
+import openai
 
-# Replace with your OpenAI API key
-openai.api_key = "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"
+# Set up OpenAI API
+openai.api_key = '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'
 
-# Dictionary to manage users with enabled GPT auto-response
-enabled_users = {}
+# Store the IDs of users who are disabled for auto-response
+enabled_users = set()
 
-# Function to interact with OpenAI Chat
-async def chat_with_gpt(message):
-    try:
-        response = openai.Chat.create(
-            model="gpt-3.5-turbo",  # Use the appropriate model
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": message},
-            ],
-        )
-        return response.choices[0].message["content"]
-    except Exception as e:
-        return f"Error: {str(e)}"
+# Flag to control whether auto-response is enabled for all users by default
+all_users_enabled = True
 
-
-# Enable auto-response for a user
-@borg.on(events.NewMessage(pattern=r"\.enacf", outgoing=True))
-async def enable_chat(event):
-    if event.reply_to_msg_id:
-        reply_msg = await event.get_reply_message()
-        user_id = reply_msg.from_id
-        chat_id = event.chat_id
-        enabled_users[user_id] = {"chat_id": chat_id, "enabled_at": time()}
-        await event.edit(f"GPT auto-response enabled for [user](tg://user?id={user_id}).")
-    else:
-        await event.edit("Reply to a user's message to enable GPT auto-response for them.")
-
-
-# Disable auto-response for a user
-@borg.on(events.NewMessage(pattern=r"\.delcf", outgoing=True))
-async def disable_chat(event):
-    if event.reply_to_msg_id:
-        reply_msg = await event.get_reply_message()
-        user_id = reply_msg.from_id
-        if user_id in enabled_users:
-            del enabled_users[user_id]
-            await event.edit(f"GPT auto-response disabled for [user](tg://user?id={user_id}).")
-        else:
-            await event.edit("This user does not have GPT auto-response enabled.")
-    else:
-        await event.edit("Reply to a user's message to disable GPT auto-response for them.")
-
-
-# List all users with GPT auto-response enabled
-@borg.on(events.NewMessage(pattern=r"\.listcf", outgoing=True))
-async def list_users(event):
-    if enabled_users:
-        user_list = "\n".join(
-            [f"[user](tg://user?id={user_id}) in chat `{data['chat_id']}`" for user_id, data in enabled_users.items()]
-        )
-        await event.edit(f"GPT auto-response enabled for:\n\n{user_list}")
-    else:
-        await event.edit("No users have GPT auto-response enabled.")
-
-
-# Handle incoming messages and respond automatically
-@borg.on(events.NewMessage(incoming=True))
+# Your bot client (replace 'client' with your actual bot client instance)
+@client.on(events.NewMessage(incoming=True))
 async def auto_response(event):
-    user_id = event.from_id
-    chat_id = event.chat_id
+    user_id = event.sender_id  # Correctly get the user ID as an integer
 
-    # Auto-enable for any DM (private chat) unless explicitly disabled
-    if event.is_private and user_id not in enabled_users:
-        enabled_users[user_id] = {"chat_id": chat_id, "enabled_at": time()}
+    # Check if auto-response is enabled for all users or the user is not disabled
+    if all_users_enabled or user_id not in enabled_users:
+        # Handle the auto-response (responding with ChatGPT or custom response)
+        response = await generate_chatgpt_response(event.text)
+        await event.reply(response)
 
-    # Respond if the user is in the enabled list
-    if user_id in enabled_users:
-        if not event.media:  # Avoid processing media messages
-            query = event.text
-            async with event.client.action(chat_id, "typing"):
-                await asyncio.sleep(1)  # Simulate typing
-                response = await chat_with_gpt(query)
-                await event.reply(response)
+    # Command to disable auto-response for the user
+    elif event.text == "/delcf":
+        enabled_users.add(user_id)  # Add user to the disabled list
+        await event.reply("Auto-response disabled for you!")
+
+    # Command to enable auto-response for the user
+    elif event.text == "/enacf":
+        if user_id in enabled_users:
+            enabled_users.remove(user_id)  # Remove user from the disabled list
+            await event.reply("Auto-response enabled for you!")
+
+    # Command to disable auto-response for everyone
+    elif event.text == "/disable_all":
+        global all_users_enabled
+        all_users_enabled = False
+        await event.reply("Auto-response disabled for all users!")
+
+    # Command to enable auto-response for everyone
+    elif event.text == "/enable_all":
+        global all_users_enabled
+        all_users_enabled = True
+        await event.reply("Auto-response enabled for all users!")
+
+# Function to generate ChatGPT response
+async def generate_chatgpt_response(prompt):
+    try:
+        # Use OpenAI's GPT model to generate a response to the user's message
+        response = openai.Completion.create(
+            engine="text-davinci-003",  # You can change to a different model if you prefer
+            prompt=prompt,
+            max_tokens=150  # Adjust max tokens as needed
+        )
+        return response.choices[0].text.strip()  # Return the text response from GPT
+    except Exception as e:
+        return f"Sorry, I couldn't generate a response. Error: {e}"
