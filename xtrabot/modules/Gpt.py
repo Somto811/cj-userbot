@@ -3,7 +3,7 @@ from telethon import events
 from time import time
 
 # Set your OpenAI API key
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = "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"
 openai.api_key = OPENAI_API_KEY
 
 # Dictionary to store enabled users and session expiration time
