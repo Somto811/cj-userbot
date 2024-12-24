@@ -1,7 +1,6 @@
 from telethon import events
 from xtrabot import client
 import asyncio
-import secrets
 
 class TCoinMod(object):
     def __init__(self):
@@ -65,7 +64,24 @@ class TCoinMod(object):
                         await asyncio.sleep(1.5)
                         await event.respond("!farm plant")
 
+    # Define the roulette_watcher method
+    async def roulette_watcher(self, event):
+        name = event.client.me.first_name[:15]
+        if event.chat_id != -1001394158904:  # Adjust chat_id as needed
+            return
+        lines = event.text.splitlines()
+        if len(lines) < 3:
+            return
+        if "roulette" in lines[0].lower():
+            # Your custom logic here for roulette
+            # For example, respond with "!roulette play"
+            await asyncio.sleep(1.5)
+            await event.respond("!roulette play")
+
+# Instantiate the class
 tcoin = TCoinMod()
+
+# Register event handlers
 client.add_event_handler(tcoin.farm_watcher, events.NewMessage())
 client.add_event_handler(tcoin.mine_watcher, events.NewMessage())
 client.add_event_handler(tcoin.roulette_watcher, events.NewMessage())
