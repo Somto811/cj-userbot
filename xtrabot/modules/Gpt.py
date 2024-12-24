@@ -13,6 +13,8 @@ all_users_enabled = True
 # Your bot client (replace 'client' with your actual bot client instance)
 @client.on(events.NewMessage(incoming=True))
 async def auto_response(event):
+    global all_users_enabled  # Declare this variable as global here
+
     user_id = event.sender_id  # Correctly get the user ID as an integer
 
     # Check if auto-response is enabled for all users or the user is not disabled
@@ -34,13 +36,11 @@ async def auto_response(event):
 
     # Command to disable auto-response for everyone
     elif event.text == "/disable_all":
-        global all_users_enabled
         all_users_enabled = False
         await event.reply("Auto-response disabled for all users!")
 
     # Command to enable auto-response for everyone
     elif event.text == "/enable_all":
-        global all_users_enabled
         all_users_enabled = True
         await event.reply("Auto-response enabled for all users!")
 
