@@ -1,81 +1,85 @@
 import openai
 from telethon import events
 from time import time
+import asyncio
+import json
 
-# Set your OpenAI API key
-OPENAI_API_KEY = "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"
-openai.api_key = OPENAI_API_KEY
+# Replace with your OpenAI API key
+openai.api_key = "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"
 
-# Dictionary to store enabled users and session expiration time
+# Dictionary to manage users with enabled GPT auto-response
 enabled_users = {}
 
-@borg.on(events.NewMessage(incoming=True))
-async def chatgpt_auto_response(event):
-    """Automatically respond to users if AI is enabled for them."""
-    # Ignore group chats and channels
-    if event.is_group or event.is_channel:
-        return
-
-    user_id = event.sender_id
-
-    # Automatically enable AI if it's not already enabled for the user
-    if user_id not in enabled_users:
-        enabled_users[user_id] = {"session_expires": time() + 3600}  # Session expires in 1 hour
-
-    # Check if session expired
-    if time() > enabled_users[user_id]["session_expires"]:
-        del enabled_users[user_id]
-        await event.reply("Your AI session has expired. Please contact the bot owner to enable it again.")
-        return
-
-    if not event.text:
-        return  # Ignore non-text messages
-
-    query = event.text.strip()  # User's message
-
+# Function to interact with OpenAI Chat
+async def chat_with_gpt(message):
     try:
-        # Indicate typing action
-        async with event.client.action(event.chat_id, "typing"):
-            # Generate ChatGPT response
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": query}]
-            )
-            reply = response["choices"][0]["message"]["content"].strip()
-            await event.reply(reply)
+        response = openai.Chat.create(
+            model="gpt-3.5-turbo",  # Use the appropriate model
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": message},
+            ],
+        )
+        return response.choices[0].message["content"]
     except Exception as e:
-        await event.reply(f"Oops, I couldn't process that. Error: {str(e)}")
+        return f"Error: {str(e)}"
 
-@borg.on(events.NewMessage(pattern=r"^\.enacf", outgoing=True))
-async def enable_ai(event):
-    """Enable AI response for a specific user."""
+
+# Enable auto-response for a user
+@borg.on(events.NewMessage(pattern=r"\.enacf", outgoing=True))
+async def enable_chat(event):
     if event.reply_to_msg_id:
         reply_msg = await event.get_reply_message()
         user_id = reply_msg.from_id
-        enabled_users[user_id] = {"session_expires": time() + 3600}  # Set session expiry to 1 hour
-        await event.edit(f"AI enabled for [user](tg://user?id={user_id}).")
+        chat_id = event.chat_id
+        enabled_users[user_id] = {"chat_id": chat_id, "enabled_at": time()}
+        await event.edit(f"GPT auto-response enabled for [user](tg://user?id={user_id}).")
     else:
-        await event.edit("Reply to a user's message to enable AI for them.")
+        await event.edit("Reply to a user's message to enable GPT auto-response for them.")
 
-@borg.on(events.NewMessage(pattern=r"^\.delcf", outgoing=True))
-async def disable_ai(event):
-    """Disable AI response for a specific user."""
+
+# Disable auto-response for a user
+@borg.on(events.NewMessage(pattern=r"\.delcf", outgoing=True))
+async def disable_chat(event):
     if event.reply_to_msg_id:
         reply_msg = await event.get_reply_message()
         user_id = reply_msg.from_id
         if user_id in enabled_users:
             del enabled_users[user_id]
-            await event.edit(f"AI disabled for [user](tg://user?id={user_id}).")
+            await event.edit(f"GPT auto-response disabled for [user](tg://user?id={user_id}).")
         else:
-            await event.edit("This user doesn't have AI enabled.")
+            await event.edit("This user does not have GPT auto-response enabled.")
     else:
-        await event.edit("Reply to a user's message to disable AI for them.")
+        await event.edit("Reply to a user's message to disable GPT auto-response for them.")
 
-@borg.on(events.NewMessage(pattern=r"^\.listcf", outgoing=True))
-async def list_ai_users(event):
-    """List all users with AI enabled."""
+
+# List all users with GPT auto-response enabled
+@borg.on(events.NewMessage(pattern=r"\.listcf", outgoing=True))
+async def list_users(event):
     if enabled_users:
-        users = "\n".join([f"[user](tg://user?id={user_id})" for user_id in enabled_users])
-        await event.edit(f"AI is enabled for the following users:\n{users}")
+        user_list = "\n".join(
+            [f"[user](tg://user?id={user_id}) in chat `{data['chat_id']}`" for user_id, data in enabled_users.items()]
+        )
+        await event.edit(f"GPT auto-response enabled for:\n\n{user_list}")
     else:
-        await event.edit("No users have AI enabled.")
+        await event.edit("No users have GPT auto-response enabled.")
+
+
+# Handle incoming messages and respond automatically
+@borg.on(events.NewMessage(incoming=True))
+async def auto_response(event):
+    user_id = event.from_id
+    chat_id = event.chat_id
+
+    # Auto-enable for any DM (private chat) unless explicitly disabled
+    if event.is_private and user_id not in enabled_users:
+        enabled_users[user_id] = {"chat_id": chat_id, "enabled_at": time()}
+
+    # Respond if the user is in the enabled list
+    if user_id in enabled_users:
+        if not event.media:  # Avoid processing media messages
+            query = event.text
+            async with event.client.action(chat_id, "typing"):
+                await asyncio.sleep(1)  # Simulate typing
+                response = await chat_with_gpt(query)
+                await event.reply(response)
