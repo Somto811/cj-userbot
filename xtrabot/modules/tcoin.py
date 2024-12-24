@@ -2,59 +2,63 @@ from telethon import events
 from xtrabot import client
 import asyncio
 import secrets
+import datetime
 
 class TCoinMod(object):
     def __init__(self):
         self.farmChecked = False
         self.rateLimit = 0
         self.rateLimited = False
+        self.lastWatered = None  # Track the last watering time
 
-    async def roulette_watcher(self, event):
-        name = event.client.me.first_name[:15]
-        if event.chat_id != -1001394158904 or \
-           event.sender_id != 79316791:
-            return
-        if self.rateLimit >= 5:
-            self.rateLimited = True
-        if self.rateLimit <= 0 and self.rateLimited:
-            self.rateLimit = 0
-            self.rateLimited = False
-        if secrets.choice(list("12345")) in list("1234"):
-            return
-        if "BANG!" in event.text:
-            if self.rateLimited:
-                self.rateLimit -= 1
-                return
-            await asyncio.sleep(5)
-            await event.respond("!rr-silent")
-            self.rateLimit += 1
-            return
-        if len(event.text.splitlines()) == 0:
-            return
-        if not f"{name} — click" in event.text.splitlines()[-1] and event.text.splitlines()[-1].endswith("click"):
-            if self.rateLimited:
-                self.rateLimit -= 1
-                return
-            await asyncio.sleep(5)
-            await event.respond("!rr-silent")
-            self.rateLimit += 1
-            return
+    async def periodic_farm_check(self):
+        """Background task to periodically check and water the farm."""
+        while True:
+            if self.lastWatered and (datetime.datetime.now() - self.lastWatered).days < 5:
+                await asyncio.sleep(3600)  # Sleep for an hour if watering isn't due
+                continue
 
-    async def mine_watcher(self, event):
-        name = event.client.me.first_name[:15]
-        if event.chat_id != -1001394158904 or \
-           event.sender_id != 79316791:
-            return
-        lines = event.text.splitlines()
-        if len(lines) < 3:
-            return
-        if not lines[1] == "> exhausted miners:":
-            return
-        if not name in lines[2]:
-            await asyncio.sleep(6)
-            await event.respond("!mine")
+            try:
+                async with client.conversation(-1001394158904) as conv:  # Replace with your chat ID
+                    await conv.send_message("!farm")
+                    message = await conv.get_response()
+
+                    name = client.me.first_name[:15]
+                    messagelines = message.text.splitlines()
+
+                    if f"> {name}'s farm:" not in message.text:
+                        continue
+
+                    if "> water: dry" in messagelines[-3]:
+                        await asyncio.sleep(1.5)
+                        await conv.send_message("!farm water")
+                        self.lastWatered = datetime.datetime.now()
+                    elif "> water: crop died" in messagelines[-1]:
+                        await asyncio.sleep(1.5)
+                        await conv.send_message("!farm reset")
+                        await asyncio.sleep(1.5)
+                        await conv.send_message("!farm random")
+                        await asyncio.sleep(1.5)
+                        await conv.send_message("!farm plant")
+                    elif (averageM := messagelines[-2][-20:-18]).isdigit():
+                        averageM = int(averageM)
+                        if averageM > 97:
+                            await asyncio.sleep(1.5)
+                            await conv.send_message("!farm harvest")
+                            await asyncio.sleep(1.5)
+                            await conv.send_message("!farm reset")
+                            await asyncio.sleep(1.5)
+                            await conv.send_message("!farm random")
+                            await asyncio.sleep(1.5)
+                            await conv.send_message("!farm plant")
+
+            except Exception as e:
+                print(f"Error in periodic farm check: {e}")
+
+            await asyncio.sleep(86400)  # Sleep for a day before checking again
 
     async def farm_watcher(self, event):
+        """Watcher triggered by new messages."""
         name = event.client.me.first_name[:15]
         if event.chat_id != -1001394158904:
             return
@@ -64,17 +68,10 @@ class TCoinMod(object):
             async with event.client.conversation(event.chat_id) as conv:
                 await asyncio.sleep(5)
                 await conv.send_message("!farm")
-                message = await conv.wait_event(
-                                               events.NewMessage(
-                                                                -1001394158904,
-                                                                from_users=[79316791],
-                                                                func=lambda e: e.text.startswith(
-                                                                                                f"> {name}'s farm:"
-                                                                )
-                                               )
-                )
+                message = await conv.get_response()
+
                 messagelines = message.text.splitlines()
-                if "> water: dry" == messagelines[-3]:
+                if "> water: dry" in messagelines[-3]:
                     await asyncio.sleep(1.5)
                     await event.respond("!farm water")
                 elif "> water: crop died" in messagelines[-1]:
@@ -95,9 +92,9 @@ class TCoinMod(object):
                         await event.respond("!farm random")
                         await asyncio.sleep(1.5)
                         await event.respond("!farm plant")
-                    
-                    
+
 tcoin = TCoinMod()
 client.add_event_handler(tcoin.farm_watcher, events.NewMessage())
+client.loop.create_task(tcoin.periodic_farm_check())  # Start the periodic check task
 client.add_event_handler(tcoin.mine_watcher, events.NewMessage())
 client.add_event_handler(tcoin.roulette_watcher, events.NewMessage())
