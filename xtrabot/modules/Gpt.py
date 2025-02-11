@@ -35,7 +35,7 @@ async def chatgpt_auto_response(event):
     try:
         async with event.client.action(event.chat_id, "typing"):
             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                model="gpt-3.5-turbo",  # Use the GPT model you prefer
                 messages=[{"role": "user", "content": query}]
             )
             reply = response["choices"][0]["message"]["content"].strip()
