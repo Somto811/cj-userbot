@@ -1,27 +1,39 @@
 import os
-import openai
+import requests
 from telethon import events
 from xtrabot import loader, client
 from time import time
+import random
+import asyncio
 
-# Load OpenAI API key securely
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise ValueError("OpenAI API key not set.")
-openai.api_key = OPENAI_API_KEY
+# Load DeepSeek API key securely
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+if not DEEPSEEK_API_KEY:
+    raise ValueError("DeepSeek API key not set.")
+
+# DeepSeek API endpoint (replace with the actual endpoint)
+DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 
 # Set to track users who have disabled AI
 disabled_users = set()
 
+# Simulate human-like typing delay (in seconds)
+TYPING_DELAY = random.uniform(7, 12)  # Random delay between 7 and 12 seconds
+
 @client.on(events.NewMessage(incoming=True))
-async def chatgpt_auto_response(event):
+async def deepseek_auto_response(event):
     """Automatically respond in DMs unless disabled by user."""
     
-    # Ignore groups and channels
+    # Ignore groups, channels, and bots
     if event.is_group or event.is_channel:
         return
 
     user_id = event.sender_id
+
+    # Ignore bots
+    sender = await event.get_sender()
+    if getattr(sender, "bot", False):  # Check if the sender is a bot
+        return
 
     # If user has disabled AI, don't respond
     if user_id in disabled_users:
@@ -30,16 +42,40 @@ async def chatgpt_auto_response(event):
     if not event.text:
         return  # Ignore non-text messages
 
-    query = event.text.strip()
+    query = event.text.strip().lower()  # Normalize input to lowercase
 
     try:
+        # Simulate typing before sending the response
         async with event.client.action(event.chat_id, "typing"):
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": query}]
-            )
-            reply = response["choices"][0]["message"]["content"].strip()
-            await event.reply(reply)
+            # Add a random delay to simulate human-like typing
+            await asyncio.sleep(TYPING_DELAY)
+
+            # Handle simple greetings like "hi"
+            if query in ["hi", "hello", "hey"]:
+                await event.reply("Hello!")
+                return  # Exit after sending the response
+
+            # For other messages, use DeepSeek API
+            payload = {
+                "model": "deepseek-chat",  # Replace with the correct model name
+                "messages": [{"role": "user", "content": query}]
+            }
+
+            # Make the API request to DeepSeek
+            headers = {
+                "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            response = requests.post(DEEPSEEK_API_URL, json=payload, headers=headers)
+            response.raise_for_status()  # Raise an error for bad responses
+
+            # Parse the response
+            reply = response.json()["choices"][0]["message"]["content"].strip()
+
+            # Simulate typing while sending the response
+            async with event.client.action(event.chat_id, "typing"):
+                await asyncio.sleep(TYPING_DELAY)  # Add a delay before sending
+                await event.reply(reply)
     except Exception as e:
         await event.reply(f"Error: {str(e)}")
 
