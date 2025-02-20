@@ -67,7 +67,12 @@ async def deepseek_auto_response(event):
                 "Content-Type": "application/json"
             }
             response = requests.post(DEEPSEEK_API_URL, json=payload, headers=headers)
-            response.raise_for_status()  # Raise an error for bad responses
+
+            # Handle specific HTTP errors
+            if response.status_code == 402:
+                await event.reply("Sorry, the bot is currently unavailable due to payment requirements. Please contact the admin.")
+                return
+            response.raise_for_status()  # Raise an error for other bad responses
 
             # Parse the response
             reply = response.json()["choices"][0]["message"]["content"].strip()
@@ -76,6 +81,11 @@ async def deepseek_auto_response(event):
             async with event.client.action(event.chat_id, "typing"):
                 await asyncio.sleep(TYPING_DELAY)  # Add a delay before sending
                 await event.reply(reply)
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 402:
+            await event.reply("Sorry, the bot is currently unavailable due to payment requirements. Please contact the admin.")
+        else:
+            await event.reply(f"Error: {str(e)}")
     except Exception as e:
         await event.reply(f"Error: {str(e)}")
 
